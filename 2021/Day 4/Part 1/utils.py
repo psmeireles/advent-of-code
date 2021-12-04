@@ -26,3 +26,11 @@ def initializeDicts(tables):
                 number = table[i][j]
                 dicts[n][number] = [i, j]
     return dicts
+
+# Sums all unmarked numbers in table
+def sumUnmarkedNumbers(table, markedNumbers):
+    s = 0
+    for i in range(len(table)):
+        s += sum(table[i])
+    s -= sum(markedNumbers)
+    return s

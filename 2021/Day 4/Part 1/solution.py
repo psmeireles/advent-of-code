@@ -19,11 +19,7 @@ for n in numbers:
         markedNumbersByRow[tableIndex][row] += 1
         markedNumbersByColumn[tableIndex][column] += 1
         if markedNumbersByColumn[tableIndex][column] == tableSize or markedNumbersByRow[tableIndex][row] == tableSize:
-            s = 0
-            for i in range(tableSize):
-                s += sum(tables[tableIndex][i])
-            s -= sum(markedNumbersInTable[tableIndex])
-            print(s * n)
+            print(sumUnmarkedNumbers(tables[tableIndex], markedNumbersInTable[tableIndex]) * n)
             exit()
 
 
