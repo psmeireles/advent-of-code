@@ -154,7 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Day1.cpp" />
+    <ClCompile Include="Day01.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="input.txt" />
