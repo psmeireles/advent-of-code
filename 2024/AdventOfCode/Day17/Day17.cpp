@@ -1,16 +1,18 @@
 #include <bitset>
 #include <string>
-#include <sstream>
+#include <queue>
 #include <iostream>
 #include <fstream>
+#include <tuple>
 #include <vector>
+
 using namespace std;
 
 // Registers
-int a, b, c;
+unsigned long long a, b, c;
 int instruction = 0;
 
-void ReadFile(int& a, int& b, int& c, vector<int>& program)
+void ReadFile(unsigned long long& a, unsigned long long& b, unsigned long long& c, vector<int>& program)
 {
     ifstream file("input.txt");
     string line1, line2, line3, _, operationsLine;
@@ -39,7 +41,7 @@ void ReadFile(int& a, int& b, int& c, vector<int>& program)
     }
 }
 
-int combo(int x)
+unsigned long long combo(int x)
 {
     switch (x)
     {
@@ -62,8 +64,8 @@ int combo(int x)
 // opcode 0
 void adv(int x)
 {
-    int numerator = a;
-    int denominator = pow(2, combo(x));
+    unsigned long long numerator = a;
+    unsigned long long denominator = pow(2, combo(x));
     a = numerator / denominator;
 }
 
@@ -106,16 +108,16 @@ int out(int x)
 // operand 6
 void bdv(int x)
 {
-    int numerator = a;
-    int denominator = pow(2, combo(x));
+    unsigned long long numerator = a;
+    unsigned long long denominator = pow(2, combo(x));
     b = numerator / denominator;
 }
 
 // operand 7
 void cdv(int x)
 {
-    int numerator = a;
-    int denominator = pow(2, combo(x));
+    unsigned long long numerator = a;
+    unsigned long long denominator = pow(2, combo(x));
     c = numerator / denominator;
 }
 
@@ -196,46 +198,11 @@ bool Equals(vector<int>& a, vector<int>& b)
     return true;
 }
 
-int Solve(int numA, int result)
-{
-    int solution = 0;
-    // working bit by bit
-    for (int i = 0; i < 3; i++)
-    {
-        int mask = 1 << i;
-        int bitA = numA & mask;
-        int bitResult = result & mask;
-        if (bitA == bitResult)
-        {
-            // This bit from solution should be zero. Do nothing.
-        }
-        else
-        {
-            if (bitResult == 0)
-            {
-                // We must have the same bit as A
-                solution |= bitA;
-            }
-            else
-            {
-                // Result is 1, so we must be different from A
-                solution |= ~bitA & mask;
-            }
-        }
-    }
-
-    cout << bitset<10>(numA).to_string().substr(7) << " ^ " << bitset<10>(solution).to_string().substr(7) << " = " << bitset<10>(result).to_string().substr(7) << endl;
-    
-    return solution;
-}
-
 int main(int argc, char* argv[])
 {
     vector<int> program;
     ReadFile(a, b, c, program);
-
-    cout << a << " " << b << " " << c << endl;
-
+    
     vector<int> outs;
     Run(program, outs);
 
@@ -247,32 +214,64 @@ int main(int argc, char* argv[])
     }
     cout << outs[outs.size() - 1] << endl;
 
-    // Part 2
-    reverse(program.begin(), program.end());
-    long long result = 0;
-    int previous = 0;
-    for (int i = 0; i < program.size(); i++)
+
+
+    // Part 2 - Answer: 236580836040301
+    // Program: 2,4,1,3,7,5,0,3,4,3,1,5,5,5,3,0
+    //
+    // (2,4), (1,3), (7,5), (0,3), (4,3), (1,5), (5,5), (3,0)
+    // bst(4), bxl(3), cdv(5), adv(3), bxc(3), bxl(5), out(5), jnz(0)
+    //
+    // bst(4) -> b = a % 8
+    // bxl(3) -> b ^= 011
+    // cdv(5) -> c = a / (2 ** b)
+    // adv(3) -> a = a / 8
+    // bxc(3) -> b ^= c
+    // bxl(5) -> b ^= 101
+    // out(5) -> return b % 8
+    // jnz(0) -> restart
+
+    // Each output of the program only depends on the last 6 bits of a. The very last output necessarily only depends on the
+    // last 3 bits of a, as the other 3 will be 0. That means that there are 8 possibilities to try if we fix the other 3 bits.
+    // My approach here is start with 0, and try 0 + 0..7 and check if it returns the expected output. If it does, shift 3 bits
+    // and try Shifted + 0..7 recursively until we find the solution. More than one of the combinations can work at one step,
+    // but may fail in a later step. Adding all calculations to a queue until we eventually find our result.
+
+    queue<tuple<unsigned long long, int>> q;
+    q.emplace(0, 1);
+    while (!q.empty())
     {
-        int step = Solve(previous, program[i]);
-        // cout << step << ", ";
-        previous = step;
-        result |= step;
-        result <<= 3;
+        auto temp = q.front();
+        q.pop();
+        unsigned long long number = get<0>(temp);
+
+        // Build the expected result at this step
+        int size = get<1>(temp);
+        vector<int> expected(program.end() - size, program.end());
+
+        // Try from number to number + 7 (all combinations of the last 3 bits)
+        for (int i = 0; i < 8; i++)
+        {
+            Reset();
+            a = number | i;
+            vector<int> output;
+            Run(program, output);
+
+            if (Equals(output, program))
+            {
+                // Found the result
+                cout << "Part 2: " << (number | i) << endl;
+                return 0;
+            }
+
+            // Found an intermediate result. Shift 3 and try again with the next element of the output.
+            if (Equals(output, expected))
+            {
+                auto newNumber = (number | i) << 3;
+                q.emplace(newNumber, size + 1);
+            }
+        }
     }
-    cout << endl;
-
-    cout << "Part 2: " << result << endl;
-
-    Reset();
-    reverse(program.begin(), program.end());
-    a = result;
-    vector<int> outs2;
-    Run(program, outs2);
-    for (int i = 0; i < outs2.size() - 1; i++)
-    {
-        cout << outs2[i] << ",";
-    }
-    cout << outs2[outs2.size() - 1] << endl;
-
+    
     return 0;
 }
