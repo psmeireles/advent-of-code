@@ -33,17 +33,6 @@ void ReadFile(vector<string>& towels, vector<string>& patterns)
     }
 }
 
-vector<int> FindAllOccurences(string sample, string findIt)
-{
-    vector<int> indexes;
-    for (int i = 0; i < sample.length(); i++) {
-        if (sample.substr(i, findIt.length()) == findIt) {
-            indexes.push_back(i);
-        }
-    }
-    return indexes;
-}
-
 long long CountWays(const string& goal, const vector<string>& towels, map<string, long long>& memo) {
     if (memo.find(goal) != memo.end())
     {
